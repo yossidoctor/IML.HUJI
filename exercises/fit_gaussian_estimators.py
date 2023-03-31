@@ -12,7 +12,7 @@ def test_univariate_gaussian():
     mu, sigma = 10, 1
     samples = np.random.normal(mu, sigma, size=1000)
     model = UnivariateGaussian().fit(samples)
-    print((np.round(model.mu_, 3), np.round(model.var_, 3)))
+    print((np.round(model.mu_, decimals=3), np.round(model.var_, decimals=3)))
 
     # Question 2 - Empirically showing sample mean is consistent
     size = 100
@@ -27,7 +27,7 @@ def test_univariate_gaussian():
                           xaxis_title="Number Of Samples",
                           yaxis_title="Difference",
                           height=600,
-                          width=1000)).show()
+                          width=1000)).write_image("IML.EX1.Q2.Practical.png")
 
     # Question 3 - Plotting Empirical PDF of fitted model
     pdfs = model.pdf(samples)
@@ -36,7 +36,7 @@ def test_univariate_gaussian():
                           xaxis_title="Sample Value",
                           yaxis_title="PDF Value",
                           height=400,
-                          width=900)).show()
+                          width=900)).write_image("IML.EX1.Q3.Practical.png")
 
 
 def test_multivariate_gaussian():
@@ -49,8 +49,8 @@ def test_multivariate_gaussian():
                                             cov=cov,
                                             size=1000)
     model = MultivariateGaussian().fit(samples)
-    print(np.round(model.mu_, 3))
-    print(np.round(model.cov_, 3))
+    print(np.round(model.mu_, decimals=3))
+    print(np.round(model.cov_, decimals=3))
 
     # Question 5 - Likelihood evaluation
     size = 200
@@ -67,12 +67,12 @@ def test_multivariate_gaussian():
                           xaxis_title="Sample Value",
                           yaxis_title="Sample Value",
                           height=900,
-                          width=900)).show()
+                          width=900)).write_image("IML.EX1.Q5.Practical.png")
 
     # Question 6 - Maximum likelihood
     max_index = np.argmax(values)
     a, b = np.unravel_index(max_index, values.shape)
-    x, y = np.round(axis[a], 3), np.round(axis[b], 3)
+    x, y = np.round(axis[a], decimals=3), np.round(axis[b], decimals=3)
     print(x, y)
 
 
