@@ -102,8 +102,9 @@ class UnivariateGaussian:
             log-likelihood calculated
         """
         m_samples = X.size
-        # TODO: sigma refers to the variance, wrong name according to the forum
-        return -0.5 * (m_samples * (np.log(2 * np.pi) + np.log(sigma)) -
+        # TODO: sigma refers to the variance (which is sigma ** 2),
+        #  wrong variable name according to the forum
+        return -0.5 * (m_samples * (np.log(2 * np.pi) + np.log(sigma)) +
                        np.sum((X - mu) ** 2) / sigma)
 
 
