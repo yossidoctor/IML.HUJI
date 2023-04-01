@@ -38,7 +38,7 @@ def split_train_test(X: pd.DataFrame, y: pd.Series, train_proportion: float = .7
     lim = int(np.ceil(train_proportion * len(X)))
     train_X, test_X = X.iloc[:lim], X.iloc[lim:]
     train_y, test_y = y.iloc[:lim], y.iloc[lim:]
-    return train_X, train_y, test_X, test_y
+    return train_X, train_y.squeeze(), test_X, test_y.squeeze()
 
 
 def confusion_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
