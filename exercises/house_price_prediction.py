@@ -3,6 +3,7 @@ from typing import NoReturn, Optional
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import plotly.io as pio
 
 from IMLearn.utils import split_train_test  # todo: validate import
@@ -34,37 +35,20 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
     Post-processed design matrix and response vector (prices) - either as a single
     DataFrame or a Tuple[DataFrame, Series]
     """
-    x_df = drop_irrelevant_features(X)
-    x_df = validate_values(x_df)
-    x_df = remove_old_listings(x_df)
-    y_df = y.loc[y.index.isin(x_df.index)]  # Remove the samples from y
-    X, y = x_df, y_df  # Update original X, y
-
-
-def drop_irrelevant_features(x):
-    return x.drop(columns=['zipcode', 'lat', 'long', 'sqft_living15', 'sqft_lot15'])
-
-
-def remove_old_listings(x_df):
-    """Keep only the most recent listing for each house (identified by id)"""
-    x_df['date'] = pd.to_datetime(x_df['date'].str[:-7], format='%Y%m%d')
-    x_df = x_df.sort_values(['id', 'date'], ascending=[True, False])
-    x_df = x_df.drop_duplicates(subset=['id'], keep='first')
-    return x_df
-
-
-def validate_values(x_df):
-    x_df = x_df.loc[
-        x_df['date'].apply(lambda x: bool(date_pattern.match(x))) &
-        x_df['price'].apply(lambda x: bool(positive_numerical_pattern.match(str(x)))) &
-        x_df['bedrooms'].apply(lambda x: bool(positive_int_pattern.match(str(x)))) &
-        x_df['bathrooms'].apply(lambda x: bool(positive_numerical_pattern.match(str(x)))) &
-        x_df['sqft_living'].apply(lambda x: bool(positive_numerical_pattern.match(str(x)))) &
-        x_df['sqft_lot'].apply(lambda x: bool(positive_numerical_pattern.match(str(x)))) &
-        x_df['floors'].apply(lambda x: bool(positive_numerical_pattern.match(str(x)))) &
-        x_df['yr_built'].apply(lambda x: bool(year_built_pattern.match(str(x)))) &
-        x_df['yr_renovated'].apply(lambda x: bool(year_renovated_pattern.match(str(x))))]
-    return x_df.dropna()
+    irrelevant_columns = ['id', 'date', 'zipcode', 'lat', 'long', 'sqft_living15', 'sqft_lot15']
+    positive_columns = ['price', 'sqft_living', 'sqft_lot', 'yr_built', 'bathrooms', 'floors']
+    non_negative_columns = ['bedrooms', 'bathrooms', 'sqft_above', 'sqft_basement', 'yr_renovated']
+    x_df = X.drop(columns=irrelevant_columns).dropna()
+    x_df = x_df[(x_df[positive_columns] > 0).all(axis=1)]
+    x_df = x_df[(x_df[non_negative_columns] >= 0).all(axis=1)]
+    x_df = x_df.loc[x_df['waterfront'].isin(range(2)) &
+                    x_df['view'].isin(range(5)) &
+                    x_df['condition'].isin(range(6)) &
+                    x_df['grade'].isin(range(1, 15)) &
+                    x_df['bedrooms'].isin(range(12))]
+    x_df["recently_renovated"] = np.where(x_df["yr_renovated"] >= 2013, 1, 0)
+    x_df = x_df.drop(columns=['price', 'yr_renovated'])
+    return x_df if y is None else x_df, y.loc[y.index.isin(x_df.index)]
 
 
 def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") -> NoReturn:
@@ -84,7 +68,14 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
     output_path: str (default ".")
         Path to folder in which plots are saved
     """
-    raise NotImplementedError()
+    for feature_name in X.columns:
+        feature = X[feature_name]
+        correlation = np.round(feature.cov(y) / (feature.std() * y.std()), 3)
+        title = f"{correlation}-Pearson Correlation between {feature_name} Values and Price"
+        px.scatter(pd.DataFrame({'x': feature, 'y': y}), x=feature, y=y, trendline="ols",
+                   trendline_color_override='black', title=title,
+                   labels={"x": f"{feature_name} values", "y": "Price"}) \
+            .write_image(output_path + f"/{feature_name}_correlation.png")
 
 
 if __name__ == '__main__':
@@ -93,13 +84,13 @@ if __name__ == '__main__':
 
     # Question 1 - split data into train and test sets
     train_X, train_y, test_X, test_y = split_train_test(df, df[['price']])
-    preprocess_data(train_X, train_y)
 
     # Question 2 - Preprocessing of housing prices dataset
-    # raise NotImplementedError()
+    processed_train_X, processed_train_y = preprocess_data(train_X, train_y)
+    processed_test_X, processed_test_y = preprocess_data(test_X, test_y)
 
     # Question 3 - Feature evaluation with respect to response
-    # raise NotImplementedError()
+    feature_evaluation(processed_train_X, processed_train_y)
 
     # Question 4 - Fit model over increasing percentages of the overall training data
     # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
