@@ -5,8 +5,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 
-from IMLearn.learners.regressors import LinearRegression  # todo: validate import
-from IMLearn.utils import split_train_test  # todo: validate import
+from IMLearn.learners.regressors import LinearRegression
+from IMLearn.utils import split_train_test
 
 pio.templates.default = "simple_white"
 
@@ -63,12 +63,11 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
     """
     for feature_name in X.columns:
         feature = X[feature_name]
-        correlation = np.round(feature.cov(y) / (feature.std() * y.std()), 3)
-        image_path = output_path + f"/{feature_name}_correlation.png"
-        title = f"{correlation}-Pearson Correlation between {feature_name} Values and Price"
-        labels = {"x": f"{feature_name} values", "y": "Price"}
+        coef = np.round(feature.cov(y) / (feature.std() * y.std()), 3)
         px.scatter(x=feature, y=y, trendline="ols", trendline_color_override='black',
-                   title=title, labels=labels).write_image(image_path)
+                   title=f"{coef}-Pearson Correlation between {feature_name} Values and Price",
+                   labels={"x": f"{feature_name} values", "y": "Price"})\
+            .write_image(output_path + f"/{feature_name}_correlation.png")
 
 
 if __name__ == '__main__':
@@ -83,16 +82,9 @@ if __name__ == '__main__':
     test_X, test_y = preprocess_data(test_X, test_y)
 
     # Question 3 - Feature evaluation with respect to response
-    # feature_evaluation(train_X, train_y)  # todo: enable
+    feature_evaluation(train_X, train_y)
 
     # Question 4 - Fit model over increasing percentages of the overall training data
-    # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
-    #   1) Sample p% of the overall training data
-    #   2) Fit linear model (including intercept) over sampled set
-    #   3) Test fitted model over test set
-    #   4) Store average and variance of loss over test set
-    # Then plot average loss as function of training size with error ribbon of size (mean-2*std
-    # mean+2*std)
     m_samples = 10
     percentage = np.arange(10, 101)
     out = np.empty((percentage.shape[0], m_samples))
@@ -103,10 +95,10 @@ if __name__ == '__main__':
             out[i, j] = LinearRegression().fit(train_X_sample, train_y_sample).loss(test_X, test_y)
     mean = out.mean(axis=1)
     std = out.std(axis=1)
-    px.scatter(x=percentage, y=mean, title="MSE As A Function Of Training Set Size") \
+    px.scatter(x=percentage, y=mean, title="MSE as a Function of Training Set Size",
+               labels={"x": "Training Set Size in Percentage", "y": "MSE Values"}) \
         .add_scatter(x=percentage, y=mean - 2 * std, mode="lines",
                      line=dict(color="lightgrey"), showlegend=False) \
         .add_scatter(x=percentage, y=mean + 2 * std, mode="lines",
                      line=dict(color="lightgrey"), showlegend=False, fill='tonexty') \
-        .update_layout(xaxis_title="Training Set Size In Percentage",
-                       yaxis_title="MSE Values", ).write_image("Q4.png")
+        .write_image("Q4.png")
