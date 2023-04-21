@@ -9,7 +9,7 @@ from IMLearn.learners.regressors import LinearRegression
 from IMLearn.utils import split_train_test
 
 pio.templates.default = "simple_white"
-
+# TODO: REPLACE ALL THE .WRITE_IMAGE TO SHOW, AFTER FINISHING THE EXE
 PATH = r"D:\\Google Drive\\University\\IML\\IML Ex 2\\"  # todo: remove!
 
 
@@ -29,24 +29,43 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
     Post-processed design matrix and response vector (prices) - either as a single
     DataFrame or a Tuple[DataFrame, Series]
     """
-    irrelevant_columns = ['id', 'date', 'price']
-    weak_correlation_columns = ['yr_renovated', 'sqft_lot', 'sqft_lot15', 'condition', 'yr_built',
-                                'zipcode', 'long']
-    positive_columns = ['bedrooms', 'bathrooms', 'price', 'sqft_living', 'floors', 'sqft_above',
-                        'yr_built', 'zipcode']
-    to_int_columns = ['id', 'price', 'bedrooms', 'bathrooms', 'sqft_living',
-                      'sqft_living15', 'floors', 'waterfront', 'view',
-                      'grade', 'sqft_above', 'sqft_basement']
-    x_df = X.dropna()
+    # irrelevant_columns = ['id', 'date', 'price', 'long', 'lat']
+    # weak_correlation_columns = ['yr_renovated', 'sqft_lot', 'sqft_lot15',
+    #                             'condition', 'yr_built', 'zipcode', 'long']
+    # x_df = X.dropna().drop_duplicates()  # drop rows with NA values
+    #
+    # positive_columns = ['price', 'sqft_living', 'sqft_lot', 'sqft_above', 'yr_built', 'zipcode']
+    # x_df = x_df[(x_df[positive_columns] > 0).all(axis=1)]
+    #
+    # x_df = x_df.loc[x_df['waterfront'].isin(range(2)) &
+    #                 x_df['view'].isin(range(5)) &
+    #                 x_df['condition'].isin(range(1, 6)) &
+    #                 x_df['grade'].isin(range(1, 15)) &
+    #                 x_df['bedrooms'].isin(range(1, 12))]
+    #
+    # x_df = x_df.drop(columns=irrelevant_columns + weak_correlation_columns)  # drop columns
+    # return x_df if y is None else x_df, y.loc[y.index.isin(x_df.index)]
+    x_df = X.drop(columns=['date', 'id', 'price']).dropna().drop_duplicates()
+    positive_columns = ['yr_built', 'sqft_living', 'sqft_lot', 'bathrooms', 'bedrooms', 'floors',
+                        'sqft_above', 'sqft_living15', 'sqft_lot15', 'sqft_basement',
+                        'yr_renovated']
     x_df = x_df[(x_df[positive_columns] > 0).all(axis=1)]
+
+    categorical_features = ['view', 'waterfront', 'condition', 'grade',
+                            'yr_built', 'yr_renovated', 'zipcode', 'bedrooms']
+    x_df[categorical_features] = x_df[categorical_features].astype(int)
     x_df = x_df.loc[x_df['waterfront'].isin(range(2)) &
                     x_df['view'].isin(range(5)) &
                     x_df['condition'].isin(range(1, 6)) &
                     x_df['grade'].isin(range(1, 15)) &
-                    x_df['bedrooms'].isin(range(1, 12))]
-    x_df[to_int_columns] = x_df[to_int_columns].astype(int)
-    x_df = x_df.drop(columns=irrelevant_columns + weak_correlation_columns)
+                    x_df['bedrooms'].isin(range(1, 13))]
+
+    low_correlation_columns = ['condition', 'long', 'lat', 'zipcode', 'sqft_lot', 'sqft_lot15',
+                               'yr_built', 'yr_renovated']
+    x_df = x_df.drop(columns=low_correlation_columns)
+
     return x_df if y is None else x_df, y.loc[y.index.isin(x_df.index)]
+
 
 
 def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") -> NoReturn:
@@ -67,10 +86,15 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         Path to folder in which plots are saved
     """
     y_std = y.std()
+    if y_std == 0:
+        return
     # lst = [] # todo: remove
     for feature_name in X.columns:
         feature = X[feature_name]
-        coef = np.round(feature.cov(y) / (feature.std() * y_std), 3)
+        f_std = feature.std()
+        if f_std == 0:
+            continue
+        coef = np.round(feature.cov(y) / (f_std * y_std), 3)
         # lst.append((feature_name, coef)) # todo: remove
         px.scatter(x=feature, y=y, trendline="ols", trendline_color_override='black',
                    title=f"{coef}-Pearson Correlation between {feature_name} Values and Price",
