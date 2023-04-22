@@ -29,43 +29,26 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
     Post-processed design matrix and response vector (prices) - either as a single
     DataFrame or a Tuple[DataFrame, Series]
     """
-    # irrelevant_columns = ['id', 'date', 'price', 'long', 'lat']
-    # weak_correlation_columns = ['yr_renovated', 'sqft_lot', 'sqft_lot15',
-    #                             'condition', 'yr_built', 'zipcode', 'long']
-    # x_df = X.dropna().drop_duplicates()  # drop rows with NA values
-    #
-    # positive_columns = ['price', 'sqft_living', 'sqft_lot', 'sqft_above', 'yr_built', 'zipcode']
-    # x_df = x_df[(x_df[positive_columns] > 0).all(axis=1)]
-    #
-    # x_df = x_df.loc[x_df['waterfront'].isin(range(2)) &
-    #                 x_df['view'].isin(range(5)) &
-    #                 x_df['condition'].isin(range(1, 6)) &
-    #                 x_df['grade'].isin(range(1, 15)) &
-    #                 x_df['bedrooms'].isin(range(1, 12))]
-    #
-    # x_df = x_df.drop(columns=irrelevant_columns + weak_correlation_columns)  # drop columns
-    # return x_df if y is None else x_df, y.loc[y.index.isin(x_df.index)]
-    x_df = X.drop(columns=['date', 'id', 'price']).dropna().drop_duplicates()
-    positive_columns = ['yr_built', 'sqft_living', 'sqft_lot', 'bathrooms', 'bedrooms', 'floors',
-                        'sqft_above', 'sqft_living15', 'sqft_lot15', 'sqft_basement',
-                        'yr_renovated']
-    x_df = x_df[(x_df[positive_columns] > 0).all(axis=1)]
+    cleaned_df = X.dropna().drop(columns=['date', 'id', 'long', 'lat', 'zipcode']).drop_duplicates()
 
-    categorical_features = ['view', 'waterfront', 'condition', 'grade',
-                            'yr_built', 'yr_renovated', 'zipcode', 'bedrooms']
-    x_df[categorical_features] = x_df[categorical_features].astype(int)
-    x_df = x_df.loc[x_df['waterfront'].isin(range(2)) &
-                    x_df['view'].isin(range(5)) &
-                    x_df['condition'].isin(range(1, 6)) &
-                    x_df['grade'].isin(range(1, 15)) &
-                    x_df['bedrooms'].isin(range(1, 13))]
+    positive_columns = ['yr_built', 'sqft_living', 'sqft_lot', 'floors', 'bathrooms', 'bedrooms',
+                        'sqft_above', 'sqft_living15', 'sqft_lot15', 'price']
+    cleaned_df = cleaned_df[(cleaned_df[positive_columns] > 0).all(axis=1)].drop_duplicates()
 
-    low_correlation_columns = ['condition', 'long', 'lat', 'zipcode', 'sqft_lot', 'sqft_lot15',
-                               'yr_built', 'yr_renovated']
-    x_df = x_df.drop(columns=low_correlation_columns)
+    categorical_features = ['view', 'waterfront', 'condition', 'grade', 'yr_built', 'yr_renovated',
+                            'bedrooms']
+    cleaned_df[categorical_features] = cleaned_df[categorical_features].astype(int)
 
-    return x_df if y is None else x_df, y.loc[y.index.isin(x_df.index)]
+    cleaned_df = cleaned_df.loc[cleaned_df['waterfront'].isin(range(2)) &
+                                cleaned_df['view'].isin(range(5)) &
+                                cleaned_df['condition'].isin(range(1, 6)) &
+                                cleaned_df['grade'].isin(range(1, 15)) &
+                                cleaned_df['bedrooms'].isin(range(1, 13))].drop_duplicates()
 
+    low_correlation_columns = ['condition', 'sqft_lot', 'sqft_lot15', 'yr_built', 'yr_renovated']
+    cleaned_df = cleaned_df.drop(columns=low_correlation_columns + ['price']).drop_duplicates()
+
+    return cleaned_df if y is None else cleaned_df, y.loc[y.index.isin(cleaned_df.index)]
 
 
 def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") -> NoReturn:
@@ -95,11 +78,12 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         if f_std == 0:
             continue
         coef = np.round(feature.cov(y) / (f_std * y_std), 3)
+        title = f"{coef}-Pearson Correlation between {feature_name} Values and Price"
+        labels = {"x": f"{feature_name} values", "y": "Price"}
+        image_path = output_path + f"/{feature_name}_correlation.png"
         # lst.append((feature_name, coef)) # todo: remove
         px.scatter(x=feature, y=y, trendline="ols", trendline_color_override='black',
-                   title=f"{coef}-Pearson Correlation between {feature_name} Values and Price",
-                   labels={"x": f"{feature_name} values", "y": "Price"}) \
-            .write_image(output_path + f"/{feature_name}_correlation.png")
+                   title=title, labels=labels).write_image(image_path)
     # for x in sorted(lst, key=lambda x: x[1], reverse=True): # todo: remove
     #     print(x)
     # quit()
