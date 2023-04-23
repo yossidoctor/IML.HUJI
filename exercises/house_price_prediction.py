@@ -34,8 +34,12 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
     cleaned_df = validate_categorical_features(cleaned_df)
     cleaned_df = remove_sqft_outliers(cleaned_df)
     cleaned_df = remove_low_correlation_features(cleaned_df)
-    cleaned_df = cleaned_df.drop(columns=['price']).drop_duplicates()
-    return cleaned_df if y is None else cleaned_df, y.loc[y.index.isin(cleaned_df.index)]
+    if 'price' in df.columns:
+        cleaned_df = cleaned_df.drop(columns=['price'])
+    cleaned_df = cleaned_df.drop_duplicates()
+    if y is None:
+        return cleaned_df, None
+    return cleaned_df, y.loc[y.index.isin(cleaned_df.index)]
 
 
 def remove_low_correlation_features(cleaned_df):
@@ -62,13 +66,15 @@ def validate_categorical_features(cleaned_df):
 
 
 def validate_non_negative_features(cleaned_df):
-    non_negative_features = ['bathrooms', 'bedrooms', 'floors', 'sqft_basement', 'yr_renovated']
+    non_negative_features = ['sqft_basement', 'yr_renovated', 'bathrooms', 'bedrooms', 'floors',
+                             'sqft_living', 'sqft_lot', 'sqft_living15', 'sqft_lot15']
     return cleaned_df[(cleaned_df[non_negative_features] >= 0).all(axis=1)]
 
 
 def validate_positive_values(cleaned_df):
-    positive_features = ['yr_built', 'sqft_living', 'sqft_lot', 'sqft_living15', 'sqft_lot15',
-                         'price']
+    positive_features = ['yr_built']
+    if 'price' in df.columns:
+        positive_features += ['price']
     return cleaned_df[(cleaned_df[positive_features] > 0).all(axis=1)]
 
 
@@ -105,9 +111,9 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         coefficient = np.round(feature.cov(y) / (f_std * y_std), 3)
         title = f"{coefficient}-Pearson Correlation between {feature_name} Values and Price"
         labels = {"x": f"{feature_name} values", "y": "Price"}
-        # image_path = output_path + f"/{feature_name}_correlation.png"
+        image_path = output_path + f"/{feature_name}_correlation.png"
         px.scatter(x=feature, y=y, trendline="ols", trendline_color_override='black',
-                   title=title, labels=labels).show()
+                   title=title, labels=labels).write_image(image_path)
 
 
 if __name__ == '__main__':
