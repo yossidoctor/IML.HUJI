@@ -29,26 +29,54 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
     Post-processed design matrix and response vector (prices) - either as a single
     DataFrame or a Tuple[DataFrame, Series]
     """
-    cleaned_df = X.dropna().drop(columns=['date', 'id', 'long', 'lat', 'zipcode']).drop_duplicates()
-
-    positive_columns = ['yr_built', 'sqft_living', 'sqft_lot', 'floors', 'bathrooms', 'bedrooms',
-                        'sqft_above', 'sqft_living15', 'sqft_lot15', 'price']
-    cleaned_df = cleaned_df[(cleaned_df[positive_columns] > 0).all(axis=1)].drop_duplicates()
-
-    categorical_features = ['view', 'waterfront', 'condition', 'grade', 'yr_built', 'yr_renovated',
-                            'bedrooms']
-    cleaned_df[categorical_features] = cleaned_df[categorical_features].astype(int)
-
-    cleaned_df = cleaned_df.loc[cleaned_df['waterfront'].isin(range(2)) &
-                                cleaned_df['view'].isin(range(5)) &
-                                cleaned_df['condition'].isin(range(1, 6)) &
-                                cleaned_df['grade'].isin(range(1, 15)) &
-                                cleaned_df['bedrooms'].isin(range(1, 13))].drop_duplicates()
-
-    low_correlation_columns = ['condition', 'sqft_lot', 'sqft_lot15', 'yr_built', 'yr_renovated']
-    cleaned_df = cleaned_df.drop(columns=low_correlation_columns + ['price']).drop_duplicates()
-
+    cleaned_df = X.dropna()
+    cleaned_df = remove_irrelevant_features(cleaned_df)
+    cleaned_df = validate_positive_values(cleaned_df)
+    cleaned_df = validate_non_negative_features(cleaned_df)
+    cleaned_df = validate_categorical_features(cleaned_df)
+    cleaned_df = remove_sqft_outliers(cleaned_df)
+    cleaned_df = remove_low_correlation_features(cleaned_df)
+    cleaned_df = cleaned_df.drop(columns=['price']).drop_duplicates()
     return cleaned_df if y is None else cleaned_df, y.loc[y.index.isin(cleaned_df.index)]
+
+
+def remove_low_correlation_features(cleaned_df):
+    low_correlation_features = ['condition', 'sqft_lot', 'sqft_lot15', 'yr_built', 'yr_renovated']
+    return cleaned_df.drop(columns=low_correlation_features)
+
+
+def remove_sqft_outliers(cleaned_df):
+    sqft_outliers_upper_boundary = 0.99
+    sqft_columns = cleaned_df.filter(like='sqft').columns
+    upper_quantiles = cleaned_df[sqft_columns].quantile(sqft_outliers_upper_boundary)
+    is_not_outlier_upper = (cleaned_df[sqft_columns] <= upper_quantiles).all(axis=1)
+    return cleaned_df[is_not_outlier_upper]
+
+
+def validate_categorical_features(cleaned_df):
+    categorical_features = ['waterfront', 'view', 'condition', 'grade', 'bedrooms']
+    cleaned_df[categorical_features] = cleaned_df[categorical_features].astype(int)
+    return cleaned_df.loc[cleaned_df['waterfront'].isin(range(2)) &
+                          cleaned_df['view'].isin(range(5)) &
+                          cleaned_df['condition'].isin(range(1, 6)) &
+                          cleaned_df['grade'].isin(range(1, 13)) &
+                          cleaned_df['bedrooms'].isin(range(1, 12))]
+
+
+def validate_non_negative_features(cleaned_df):
+    non_negative_features = ['bathrooms', 'bedrooms', 'floors', 'sqft_basement', 'yr_renovated']
+    return cleaned_df[(cleaned_df[non_negative_features] >= 0).all(axis=1)]
+
+
+def validate_positive_values(cleaned_df):
+    positive_features = ['yr_built', 'sqft_living', 'sqft_lot', 'sqft_living15', 'sqft_lot15',
+                         'price']
+    return cleaned_df[(cleaned_df[positive_features] > 0).all(axis=1)]
+
+
+def remove_irrelevant_features(cleaned_df):
+    irrelevant_features = ['date', 'id', 'long', 'lat', 'zipcode']
+    return cleaned_df.drop(columns=irrelevant_features)
 
 
 def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") -> NoReturn:
