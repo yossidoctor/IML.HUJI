@@ -85,13 +85,14 @@ class Perceptron(BaseEstimator):
         if self.include_intercept_:
             X = np.column_stack((np.ones(n_samples), X))
 
-        for i in range(self.max_iter_):
-            classifications = np.heaviside(X @ self.coefs_ * y[:, np.newaxis], 0)
+        for _ in range(self.max_iter_):
+            classifications = y * (X @ self.coefs_)
             misclassified = np.where(classifications <= 0)[0]
             if misclassified.size == 0:
-                return
-            self.coefs_ += (y * X.T).sum(axis=1)
-            self.callback_(self, X, misclassified[0])
+                break
+            i = misclassified[0]
+            self.coefs_ += y[i] * X[i]
+            self.callback_(self, X[i], y[i])
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
