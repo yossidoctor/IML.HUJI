@@ -42,6 +42,7 @@ def misclassification_error(y_true: np.ndarray, y_pred: np.ndarray,
         return error / y_true.shape[0]
     return error
 
+
 def accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """
     Calculate accuracy of given predictions
