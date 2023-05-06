@@ -79,20 +79,21 @@ class Perceptron(BaseEstimator):
         Fits model with or without an intercept depending on value of `self.fit_intercept_`
         """
         self.fitted_ = True
-        n_samples, n_features = X.shape
-        self.coefs_ = np.zeros(n_features)
-
         if self.include_intercept_:
-            X = np.column_stack((np.ones(n_samples), X))
+            X = np.column_stack((np.ones(X.shape[0]), X))
+        self.coefs_ = np.zeros(X.shape[1])
 
         for _ in range(self.max_iter_):
-            classifications = y * (X @ self.coefs_)
-            misclassified = np.where(classifications <= 0)[0]
-            if misclassified.size == 0:
+            for i in range(X.shape[0]):
+                classification = y[i] * (X[i] @ self.coefs_)
+                misclassified = classification <= 0
+                if misclassified:
+                    self.coefs_ += y[i] * X[i]
+                    self.callback_(self, X[i], y[i])
+                    break
+            else:
                 break
-            i = misclassified[0]
-            self.coefs_ += y[i] * X[i]
-            self.callback_(self, X[i], y[i])
+        self.callback_(self, None, None)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -108,10 +109,9 @@ class Perceptron(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-
-        if self.include_intercept_:  # todo: and X.shape[1] != self.coefs_.shape[0]:?
+        if self.include_intercept_:
             X = np.column_stack((np.ones(X.shape[0]), X))
-        return np.heaviside(X @ self.coefs_, 0)
+        return np.where(X @ self.coefs_ > 0, 1, -1)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """

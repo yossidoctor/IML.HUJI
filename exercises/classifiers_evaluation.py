@@ -1,9 +1,8 @@
-from IMLearn.learners.classifiers import Perceptron, LDA, GaussianNaiveBayes
-from typing import Tuple
-from utils import *
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from math import atan2, pi
+from typing import Tuple
+
+from IMLearn.learners.classifiers import Perceptron
+from utils import *
 
 
 def load_dataset(filename: str) -> Tuple[np.ndarray, np.ndarray]:
@@ -36,16 +35,26 @@ def run_perceptron():
     Create a line plot that shows the perceptron algorithm's training loss values (y-axis)
     as a function of the training iterations (x-axis).
     """
-    for n, f in [("Linearly Separable", "linearly_separable.npy"), ("Linearly Inseparable", "linearly_inseparable.npy")]:
+
+    for n, f in [("Linearly Separable", "linearly_separable.npy"),
+                 ("Linearly Inseparable", "linearly_inseparable.npy")]:
         # Load dataset
-        raise NotImplementedError()
+        X, y = load_dataset(f"../datasets/{f}")
 
         # Fit Perceptron and record loss in each fit iteration
         losses = []
-        raise NotImplementedError()
+
+        def log_loss(model: Perceptron, _: np.ndarray, __: int):
+            losses.append(model.loss(X, y))
+
+        Perceptron(callback=log_loss).fit(X, y)
 
         # Plot figure of loss as function of fitting iteration
-        raise NotImplementedError()
+        training_iterations = list(range(len(losses)))
+        title = f"Perceptron Training Error of {n} dataset"
+        labels = {"x": "Iteration", "y": "Misclassification Error"}
+        image_title = f"Q1_{n}.png"
+        px.line(x=training_iterations, y=losses, title=title, labels=labels).write_image(image_title)
 
 
 def get_ellipse(mu: np.ndarray, cov: np.ndarray):
@@ -87,7 +96,6 @@ def compare_gaussian_classifiers():
         # Plot a figure with two suplots, showing the Gaussian Naive Bayes predictions on the left and LDA predictions
         # on the right. Plot title should specify dataset used and subplot titles should specify algorithm and accuracy
         # Create subplots
-        from IMLearn.metrics import accuracy
         raise NotImplementedError()
 
         # Add traces for data-points setting symbols and colors
