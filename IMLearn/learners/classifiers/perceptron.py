@@ -82,17 +82,15 @@ class Perceptron(BaseEstimator):
         if self.include_intercept_:
             X = np.column_stack((np.ones(X.shape[0]), X))
         self.coefs_ = np.zeros(X.shape[1])
+        y_X = y[:, np.newaxis] * X
 
         for _ in range(self.max_iter_):
-            for i in range(X.shape[0]):
-                classification = y[i] * (X[i] @ self.coefs_)
-                misclassified = classification <= 0
-                if misclassified:
-                    self.coefs_ += y[i] * X[i]
-                    self.callback_(self, X[i], y[i])
-                    break
-            else:
+            misclassified = np.dot(y_X, self.coefs_) <= 0
+            if not np.any(misclassified):
                 break
+            i = np.nonzero(misclassified)[0][0]
+            self.coefs_ += y[i] * X[i]
+            self.callback_(self, X[i], y[i])
         self.callback_(self, None, None)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
@@ -111,7 +109,7 @@ class Perceptron(BaseEstimator):
         """
         if self.include_intercept_:
             X = np.column_stack((np.ones(X.shape[0]), X))
-        return np.where(X @ self.coefs_ > 0, 1, -1)
+        return np.where(np.dot(X, self.coefs_) > 0, 1, -1)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """

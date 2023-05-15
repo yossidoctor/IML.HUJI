@@ -1,7 +1,8 @@
 from math import atan2, pi
 from typing import Tuple
 
-from IMLearn.learners.classifiers import Perceptron
+from IMLearn.learners.classifiers import Perceptron, LDA, GaussianNaiveBayes
+from IMLearn.metrics import accuracy
 from utils import *
 
 
@@ -88,24 +89,48 @@ def compare_gaussian_classifiers():
     """
     for f in ["gaussian1.npy", "gaussian2.npy"]:
         # Load dataset
-        raise NotImplementedError()
+        X, y = load_dataset(f"../datasets/{f}")
 
         # Fit models and predict over training set
-        raise NotImplementedError()
+        lda = LDA().fit(X, y)
+        gnb = GaussianNaiveBayes().fit(X, y)
+        lda_prediction = lda.predict(X)
+        gnb_prediction = gnb.predict(X)
 
         # Plot a figure with two suplots, showing the Gaussian Naive Bayes predictions on the left and LDA predictions
         # on the right. Plot title should specify dataset used and subplot titles should specify algorithm and accuracy
         # Create subplots
-        raise NotImplementedError()
+        lda_accuracy = round(100 * accuracy(y, lda_prediction), )
+        gnb_accuracy = round(100 * accuracy(y, gnb_prediction), )
+        lda_title = f"LDA (accuracy = {lda_accuracy}%)"
+        gnb_title = f"Gaussian Naive Bayes (accuracy = {gnb_accuracy}%)"
+        fig = make_subplots(rows=1, cols=2, subplot_titles=(lda_title, gnb_title))
 
         # Add traces for data-points setting symbols and colors
-        raise NotImplementedError()
+        lda_marker = dict(color=gnb_prediction, symbol=class_symbols[y], colorscale=class_colors(3))
+        gnb_marker = dict(color=lda_prediction, symbol=class_symbols[y], colorscale=class_colors(3))
+        lda_scatter = go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers', marker=lda_marker)
+        gnb_scatter = go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers',marker=gnb_marker)
+        fig.add_traces([lda_scatter, gnb_scatter], rows=[1, 1], cols=[1, 2])
 
         # Add `X` dots specifying fitted Gaussians' means
-        raise NotImplementedError()
+        marker = dict(symbol="x", color="black", size=15)
+        lda_scatter_2 = go.Scatter(x=lda.mu_[:, 0], y=lda.mu_[:, 1], mode="markers", marker=marker)
+        gnb_scatter_2 = go.Scatter(x=gnb.mu_[:, 0], y=gnb.mu_[:, 1], mode="markers", marker=marker)
+        fig.add_traces([gnb_scatter_2, lda_scatter_2], rows=[1, 1], cols=[1, 2])
 
         # Add ellipses depicting the covariances of the fitted Gaussians
-        raise NotImplementedError()
+        for i in range(3):
+            lda_ellipse = get_ellipse(lda.mu_[i], lda.cov_)
+            gnb_ellipse = get_ellipse(gnb.mu_[i], np.diag(gnb.vars_[i]))
+            fig.add_traces([lda_ellipse, gnb_ellipse], rows=[1, 1], cols=[1, 2])
+
+        dataset = f[:-4]
+        title = f"Comparing Gaussian Classifiers - {dataset} dataset"
+        filename = f"LDA VS Naive Bayes {dataset}.png"
+        fig.update_yaxes(scaleanchor="x", scaleratio=1) \
+            .update_layout(title_text=title, showlegend=False) \
+            .write_image(filename)
 
 
 if __name__ == '__main__':
