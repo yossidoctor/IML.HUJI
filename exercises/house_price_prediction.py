@@ -112,8 +112,7 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
         title = f"{coefficient}-Pearson Correlation between {feature_name} Values and Price"
         labels = {"x": f"{feature_name} values", "y": "Price"}
         image_path = output_path + f"/{feature_name}_correlation.png"
-        px.scatter(x=feature, y=y, trendline="ols", trendline_color_override='black',
-                   title=title, labels=labels).write_image(image_path)
+        px.line(x=feature, y=y, title=title, labels=labels).write_image(image_path)
 
 
 if __name__ == '__main__':

@@ -107,8 +107,8 @@ def compare_gaussian_classifiers():
         fig = make_subplots(rows=1, cols=2, subplot_titles=(lda_title, gnb_title))
 
         # Add traces for data-points setting symbols and colors
-        lda_marker = dict(color=gnb_prediction, symbol=class_symbols[y], colorscale=class_colors(3))
-        gnb_marker = dict(color=lda_prediction, symbol=class_symbols[y], colorscale=class_colors(3))
+        lda_marker = dict(color=gnb_prediction, symbol=class_symbols[y])
+        gnb_marker = dict(color=lda_prediction, symbol=class_symbols[y])
         lda_scatter = go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers', marker=lda_marker)
         gnb_scatter = go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers',marker=gnb_marker)
         fig.add_traces([lda_scatter, gnb_scatter], rows=[1, 1], cols=[1, 2])

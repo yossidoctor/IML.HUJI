@@ -8,9 +8,6 @@ from IMLearn.utils import split_train_test
 
 pio.templates.default = "simple_white"
 
-PATH = r"D:\\Google Drive\\University\\IML\\IML Ex 2\\"  # todo: remove!
-
-
 def load_data(filename: str) -> pd.DataFrame:
     """
     Load city daily temperature dataset and preprocess data.
@@ -38,18 +35,18 @@ if __name__ == '__main__':
     israel_df = df.loc[df["Country"] == "Israel"]
     px.scatter(israel_df, x='DayOfYear', y='Temp', color='Year',
                title="Temperature as a Function of Day of Year in Israel") \
-        .write_image(PATH + "Q2PolyFit_1.png")
+        .write_image("Q2PolyFit_1.png")
 
     month_df = df.groupby(['Month'])['Temp'].std().reset_index()
     px.bar(month_df, x=month_df.index, y='Temp',
            title='Standard Deviation of Daily Temperature as a Function of Month') \
-        .write_image(PATH + "Q2PolyFit_2.png")
+        .write_image("Q2PolyFit_2.png")
 
     # Question 3 - Exploring differences between countries
     countries_df = df.groupby(['Country', 'Month']). \
         agg(mean=('Temp', 'mean'), std=('Temp', 'std')).reset_index()
     px.line(countries_df, x='Month', y='mean', color='Country', error_y='std') \
-        .write_image(PATH + "Q3PolyFit.png")
+        .write_image("Q3PolyFit.png")
 
     # Question 4 - Fitting model for different values of `k`
     train_X, train_y, test_X, test_y = split_train_test(df['DayOfYear'], df['Temp'])
@@ -58,14 +55,14 @@ if __name__ == '__main__':
                for k in k_values]
     print(loss_q4)
     px.bar(x=k_values, y=loss_q4, title="Test Error as a function of Polynomial Degree") \
-        .write_image(PATH + "Q4PolyFit.png")
+        .write_image("Q4PolyFit.png")
 
     # Question 5 - Evaluating fitted model on different countries
-    best_k = 5  # TODO: VALIDATE
+    best_k = 5
     israel_fit = PolynomialFitting(best_k).fit(israel_df['DayOfYear'], israel_df['Temp'])
     loss_q5 = []
     for i, country in enumerate(df[df["Country"] != "Israel"]["Country"].unique()):
         country_df = df.loc[df["Country"] == country]
         loss_q5[i] = round(israel_fit.loss(country_df['DayOfYear'], country_df['Temp']), 2)
     px.bar(x=k_values, y=loss_q5, title="Test Error as a function of Polynomial Degree") \
-        .write_image(PATH + "Q5PolyFit.png")
+        .write_image("Q5PolyFit.png")
