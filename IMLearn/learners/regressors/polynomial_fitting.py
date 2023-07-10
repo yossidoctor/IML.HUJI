@@ -9,7 +9,6 @@ class PolynomialFitting(BaseEstimator):
     """
     Polynomial Fitting using Least Squares estimation
     """
-
     def __init__(self, k: int) -> PolynomialFitting:
         """
         Instantiate a polynomial fitting estimator
@@ -20,8 +19,7 @@ class PolynomialFitting(BaseEstimator):
             Degree of polynomial to fit
         """
         super().__init__()
-        self.deg = k
-        self.linear_regression_model = LinearRegression(True)
+        self.k_, self.lin_model_ = k, LinearRegression(include_intercept=False)
 
     def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
@@ -35,9 +33,7 @@ class PolynomialFitting(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-
-        new_X = sum(np.dot(self.__transform(X[:, i]), y) for i in range(X.shape[1]))
-        self.linear_regression_model.fit(new_X, y)
+        self.lin_model_.fit(self.__transform(X), y)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -53,7 +49,7 @@ class PolynomialFitting(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        return self.linear_regression_model.predict(X)
+        return self.lin_model_.predict(self.__transform(X))
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -72,7 +68,7 @@ class PolynomialFitting(BaseEstimator):
         loss : float
             Performance under MSE loss function
         """
-        return self.linear_regression_model.loss(X, y)
+        return self.lin_model_.loss(self.__transform(X), y)
 
     def __transform(self, X: np.ndarray) -> np.ndarray:
         """
@@ -87,4 +83,4 @@ class PolynomialFitting(BaseEstimator):
         transformed: ndarray of shape (n_samples, k+1)
             Vandermonde matrix of given samples up to degree k
         """
-        return np.vander(X, self.deg + 1, increasing=True)
+        return np.vander(X, self.k_+1, increasing=True)

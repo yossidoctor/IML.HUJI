@@ -50,15 +50,37 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
         Number of regularization parameter values to evaluate for each of the algorithms
     """
     # Question 1 - Load diabetes dataset and split into training and testing portions
-    raise NotImplementedError()
+    x, y = datasets.load_diabetes(return_X_y=True)
+    train_X, train_y, test_X, test_y = x[:n_samples], y[:n_samples], x[n_samples:], y[n_samples:]
 
     # Question 2 - Perform CV for different values of the regularization parameter for Ridge and Lasso regressions
-    raise NotImplementedError()
+    ridge_alphas, lasso_alphas = np.linspace(1e-5, 5 * 1e-2, num=n_evaluations), np.linspace(.001, 2, num=n_evaluations)
+    ridge_scores, lasso_scores = np.zeros((n_evaluations, 2)), np.zeros((n_evaluations, 2))
+    for i, (ra, la) in enumerate(zip(*[ridge_alphas, lasso_alphas])):
+        ridge_scores[i] = cross_validate(RidgeRegression(ra), train_X, train_y, mean_square_error)
+        lasso_scores[i] = cross_validate(Lasso(la, max_iter=5000), train_X, train_y, mean_square_error)
+
+    data = [go.Scatter(x=ridge_alphas, y=ridge_scores[:, 0], name="Ridge Train Error"),
+            go.Scatter(x=ridge_alphas, y=ridge_scores[:, 1], name="Ridge Validation Error"),
+            go.Scatter(x=lasso_alphas, y=lasso_scores[:, 0], name="Lasso Train Error"),
+            go.Scatter(x=lasso_alphas, y=lasso_scores[:, 1], name="Lasso Validation Error")]
+    make_subplots(1, 2, subplot_titles=["Ridge Regression", "Lasso Regression"], shared_xaxes=True) \
+        .update_layout(title="Train and Validation Errors (averaged over the k-folds)") \
+        .update_xaxes(title="lambda - Regularization parameter") \
+        .add_traces(data, rows=[1, 1, 1, 1], cols=[1, 1, 2, 2]) \
+        .write_image("ridge_lasso_train_val_errs.png")
 
     # Question 3 - Compare best Ridge model, best Lasso model and Least Squares model
-    raise NotImplementedError()
+    reg_ridge = ridge_alphas[np.argmin(ridge_scores[:, 1])]
+    reg_lasso = lasso_alphas[np.argmin(lasso_scores[:, 1])]
+    print(f"optimal Ridge parameter for CV: {reg_ridge}")
+    print(f"optimal Lasso parameter for CV: {reg_lasso}")
+    print(f"Test error of Least-Squares: {LinearRegression().fit(train_X, train_y).loss(test_X, test_y)}")
+    print(f"Test error of Ridge: {RidgeRegression(lam=reg_ridge).fit(train_X, train_y).loss(test_X, test_y)}")
+    print(
+        f"Test error of Lasso: {mean_square_error(test_y, Lasso(alpha=reg_lasso).fit(train_X, train_y).predict(test_X))}")
 
 
 if __name__ == '__main__':
     np.random.seed(0)
-    raise NotImplementedError()
+    select_regularization_parameter()

@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import copy
 from typing import Callable, NoReturn
 import numpy as np
 
@@ -77,46 +79,74 @@ class GradientDescent:
         self.callback_ = callback
 
     def fit(self, f: BaseModule, X: np.ndarray, y: np.ndarray):
-        """
-        Optimize module using Gradient Descent iterations over given input samples and responses
+            """
+            Optimize module using Gradient Descent iterations over given input samples and responses
 
-        Parameters
-        ----------
-        f : BaseModule
-            Module of objective to optimize using GD iterations
-        X : ndarray of shape (n_samples, n_features)
-            Input data to optimize module over
-        y : ndarray of shape (n_samples, )
-            Responses of input data to optimize module over
+            Parameters
+            ----------
+            f : BaseModule
+                Module of objective to optimize using GD iterations
+            X : ndarray of shape (n_samples, n_features)
+                Input data to optimize module over
+            y : ndarray of shape (n_samples, )
+                Responses of input data to optimize module over
 
-        Returns
-        -------
-        solution: ndarray of shape (n_features)
-            Obtained solution for module optimization, according to the specified self.out_type_
+            Returns
+            -------
+            solution: ndarray of shape (n_features)
+                Obtained solution for module optimization, according to the specified self.out_type_
 
-        Notes
-        -----
-        - Optimization is performed as long as self.max_iter_ has not been reached and that
-        Euclidean norm of w^(t)-w^(t-1) is more than the specified self.tol_
+            Notes
+            -----
+            - Optimization is performed as long as self.max_iter_ has not been reached and that
+            Euclidean norm of w^(t)-w^(t-1) is more than the specified self.tol_
 
-        - At each iteration the learning rate is specified according to self.learning_rate_.lr_step
+            - At each iteration the learning rate is specified according to self.learning_rate_.lr_step
 
-        - At the end of each iteration the self.callback_ function is called passing self and the
-        following named arguments:
-            - solver: GradientDescent
-                self, the current instance of GradientDescent
-            - weights: ndarray of shape specified by module's weights
-                Current weights of objective
-            - val: ndarray of shape specified by module's compute_output function
-                Value of objective function at current point, over given data X, y
-            - grad:  ndarray of shape specified by module's compute_jacobian function
-                Module's jacobian with respect to the weights and at current point, over given data X,y
-            - t: int
-                Current GD iteration
-            - eta: float
-                Learning rate used at current iteration
-            - delta: float
-                Euclidean norm of w^(t)-w^(t-1)
+            - At the end of each iteration the self.callback_ function is called passing self and the
+            following named arguments:
+                - solver: GradientDescent
+                    self, the current instance of GradientDescent
+                - weights: ndarray of shape specified by module's weights
+                    Current weights of objective
+                - val: ndarray of shape specified by module's compute_output function
+                    Value of objective function at current point, over given data X, y
+                - grad:  ndarray of shape specified by module's compute_jacobian function
+                    Module's jacobian with respect to the weights and at current point, over given data X,y
+                - t: int
+                    Current GD iteration
+                - eta: float
+                    Learning rate used at current iteration
+                - delta: float
+                    Euclidean norm of w^(t)-w^(t-1)
 
-        """
-        raise NotImplementedError()
+            """
+            prev_w = 0
+            t = 0
+            best_v = f.compute_output(X=X, y=y)
+            curr_w = best_weight = f.weights
+            w_sum = copy.deepcopy(curr_w)
+            while t < self.max_iter_:
+                delt = np.linalg.norm(curr_w - prev_w)
+                if t and delt < self.tol_:
+                    break
+                prev_w = curr_w
+                eta = self.learning_rate_.lr_step(t=t)
+                v = f.compute_output(X=X, y=y)
+                grad = f.compute_jacobian(X=X, y=y)
+                self.callback_(self, curr_w, v, grad, t, eta, delt)
+                curr_w = curr_w - eta * grad
+                if v < best_v:
+                    best_v = v
+                    best_weight = curr_w
+                f.weights = curr_w
+                w_sum += curr_w
+                t = t + 1
+            if self.out_type_ == "last":
+                return curr_w
+            elif self.out_type_ == "best":
+                return best_weight
+            else:
+                return w_sum / (t + 1)
+
+
